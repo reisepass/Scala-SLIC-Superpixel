@@ -28,14 +28,14 @@ object testImageJ {
     }.toMap
 
     val tft0 = System.currentTimeMillis()
-    // val examplePath = "/home/mort/workspace/ScalaSLIC/data/testing_groundtruth.tif"
-    val examplePath = "/home/mort/workspace/ScalaSLIC/data/training.tif"
-    //val examplePath = "/home/mort/workspace/ScalaSLIC/data/training_80_84_165.tif"
-    // val examplePath = "/home/mort/workspace/ScalaSLIC/data/training_48_40_40.tif"
-    //val examplePath = "/home/mort/workspace/ScalaSLIC/data/training_9_9_10.tif"
-    // val examplePath = "/home/mort/workspace/ScalaSLIC/data/training_saveAsimgJ.tif"
-    val examplePa3 = "/home/mort/workspace/ScalaSLIC/data/testing_groundtruth_first5.tif"
-    val examplePath2 = "/home/mort/workspace/ScalaSLIC/data/training.tif"
+    // val examplePath = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/testing_groundtruth.tif"
+    //val examplePath = "/home/mort/workspace/back_ScalaSLIC/data/training.tif"
+    val examplePath = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/training_80_84_165.tif"
+    // val examplePath = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/training_48_40_40.tif"
+    //val examplePath = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/training_9_9_10.tif"
+    // val examplePath = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/training_saveAsimgJ.tif"
+    val examplePa3 = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/testing_groundtruth_first5.tif"
+    val examplePath2 = "/home/mort/workspace/Scala-SLIC-Superpixel/ScalaSLIC/data/training.tif"
     val S = 20 // Superpixel center grid interval 
 
     val opener = new Opener();
@@ -50,7 +50,8 @@ object testImageJ {
     val v1 = aStack.getVoxel(1, 1, 1)
     val v2 = aStack.getVoxel(1, 2, 1)
     val v3 = aStack.getVoxel(1, 1, 2)
-
+    val bitDepa = aStack.getBitDepth()
+    val colModa = aStack.getColorModel()
     val zsize = aStack.getSize //Zsize 
     val allTheD = imp2.getDimensions
     val xDim = allTheD(0)
@@ -59,6 +60,62 @@ object testImageJ {
     println("(" + xDim + "," + yDim + "," + zDim + ") image Dims")
     assert(xDim > 0 & yDim > 0 & zDim > 0)
 
+    val tFu = System.currentTimeMillis()
+    val copyImg = Array.fill(xDim,yDim,zDim)(0.0)
+    for(x <- 0 until xDim; y <- 0 until yDim; z <- 0 until zDim){
+      copyImg(x)(y)(z)=aStack.getVoxel(x,y,z)
+    }
+    println(" copying image over took "+(System.currentTimeMillis()-tFu))
+    
+    /*
+     * 
+     * Test Some More 
+     * 
+     * 
+     */
+    val distFn = (a:Double,b:Double)=>sqrt(Math.pow(a-b,2))
+    val sumFn = (a:Double,b:Double)=>(a+b)
+    val normFn = (a:Double,b:Int)=>(a/b)
+    
+     
+     val allOp = new SLIC[Double](distFn,sumFn,normFn,copyImg,20)
+    
+    
+    
+    
+    /*
+     * 
+     * Testing stuff 
+     */
+     
+    val img3 = opener.openImage("/home/mort/workspace/dissolve-struct/data/generated/MSRC_ObjCategImageDatabase_v2/Images/1_10_s.bmp")
+    //val aldim = img3.getDimensions
+    //val pixF = img3.getPixel(0,0)
+    
+    val stack3 = img3.getStack()
+    val x2 = stack3.getWidth
+    val y2 = stack3.getHeight
+    val z2 = stack3.getSize
+    val rgbja = stack3.isRGB 
+    val bitDep = stack3.getBitDepth()
+    val colMod = stack3.getColorModel()
+    val v21 = stack3.getVoxel(x2-1, y2-2, z2-1)
+    val v22 = stack3.getVoxel(x2, y2, z2)
+    val v223 = stack3.getVoxel(x2, y2,0)
+    val v23 = stack3.getVoxel(1, 1, 2)
+    val vwha = stack3.getVoxel(1,1,0)
+    val vwha2 = stack3.getVoxel(1,1,4)
+    val vwha3 = stack3.getVoxel(1,1,3)
+    val vwha4 = stack3.getVoxel(1,1,59)
+    val vwha5 = stack3.getVoxel(1,2,0)
+    val vwha6 = stack3.getVoxel(2,1,0)
+    val vwha62 = stack3.getVoxel(0,0,0)
+   val grr = colMod.getGreen(vwha62.asInstanceOf[Int])
+    println("fun times")
+    
+    
+    
+    
     case class Grey3dCord(x: Int, y: Int, z: Int, grey: Double)
     val test = 5
 
