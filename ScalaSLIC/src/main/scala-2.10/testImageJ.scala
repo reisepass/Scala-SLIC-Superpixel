@@ -78,7 +78,7 @@ object testImageJ {
     val normFn = (a:Double,b:Int)=>(a/b)
     
      
-     val allOp = new SLIC[Double](distFn,sumFn,normFn,copyImg,20)
+     val allOp =  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15)
     
     
     
@@ -99,11 +99,11 @@ object testImageJ {
     val rgbja = stack3.isRGB 
     val bitDep = stack3.getBitDepth()
     val colMod = stack3.getColorModel()
-    val v21 = stack3.getVoxel(x2-1, y2-2, z2-1)
-    val v22 = stack3.getVoxel(x2, y2, z2)
-    val v223 = stack3.getVoxel(x2, y2,0)
-    val v23 = stack3.getVoxel(1, 1, 2)
-    val vwha = stack3.getVoxel(1,1,0)
+    val v21 =   stack3.getVoxel(x2-1, y2-2, z2-1)
+    val v22 =   stack3.getVoxel(x2, y2, z2)
+    val v223 =  stack3.getVoxel(x2, y2,0)
+    val v23 =   stack3.getVoxel(1, 1, 2)
+    val vwha =  stack3.getVoxel(1,1,0)
     val vwha2 = stack3.getVoxel(1,1,4)
     val vwha3 = stack3.getVoxel(1,1,3)
     val vwha4 = stack3.getVoxel(1,1,59)
