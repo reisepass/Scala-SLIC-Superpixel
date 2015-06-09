@@ -122,8 +122,9 @@ object scratch {
     val sumFn  = (a:Double,b:Double)=>(a+b)
     val normFn = (a:Double,b:Int)   =>(a/b)
     
-    val allIm =  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,connectivityOption="None",debug=true)
-     printSuperPixels(allIm.calcSuperPixels(),imp2,300.0,"debug_conEnf_f")
+     
+    val allIm =  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,minChangePerIter=0.002,connectivityOption="Imperative",debug=false)
+     printSuperPixels(allIm.calcSuperPixels(),imp2,300.0,"Imperative")
      
      val allFn =  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,connectivityOption="Functional",debug=false)
      printSuperPixels(allFn.calcSuperPixels(),imp2,300.0,"_Functional")
@@ -131,5 +132,9 @@ object scratch {
      val allno = new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,connectivityOption="None",debug=false)
      printSuperPixels(allno.calcSuperPixels(),imp2,300.0,label="_ConnectivityNotEnforced")
 
+     
+      val alld=  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,minChangePerIter=0.002,connectivityOption="Functional2",debug=true)
+     printSuperPixels(alld.calcSuperPixels(),imp2,300.0,"debugfn2")
+     
    }
 }
