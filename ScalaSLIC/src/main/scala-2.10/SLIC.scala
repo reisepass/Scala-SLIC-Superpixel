@@ -269,7 +269,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     val remainingBigIslands: scala.collection.parallel.mutable.ParSet[HashSet[(Int, Int, Int)]] = scala.collection.parallel.mutable.ParSet()
 
     val atomicNextLabel = new AtomicInteger(centers.size)
-    Random.shuffle((0 until xDim).toList).par.map { vX => //would be nice to start each thread in a different section of the image to cause less (-3) collisions but preparing the coordinates takes alot of time so its not worth it 
+    Random.shuffle((0 until xDim).toList).map { vX => //would be nice to start each thread in a different section of the image to cause less (-3) collisions but preparing the coordinates takes alot of time so its not worth it 
       {
         (0 until yDim).toList.map { vY =>
           {
@@ -371,6 +371,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                   }
 
                 } else if (foundGroup == clusterAssign(vX)(vY)(vZ)) {
+                  
                   curBlob.foreach(a => {
                     val x = a._1
                     val y = a._2
