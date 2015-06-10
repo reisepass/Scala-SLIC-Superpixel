@@ -1,16 +1,20 @@
 
-import breeze.linalg._
-import breeze.stats.DescriptiveStats._
-import breeze.stats._
-import breeze.numerics._
+import java.util.concurrent.atomic.AtomicInteger
+
+import scala.annotation.elidable
+import scala.annotation.elidable.ASSERTION
+import scala.annotation.migration
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
-import scala.collection.parallel.mutable.ParHashSet
-import scala.collection.parallel.mutable.ParMap
 import scala.collection.mutable.Stack
-import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.mutable.HashMap
+import scala.collection.parallel.mutable.ParMap
+import scala.util.Random
+
+import breeze.linalg.Vector
+import breeze.numerics.floor
+import breeze.numerics.round
+import breeze.numerics.sqrt
 //import scala.actors.threadpool.AtomicInteger
 
 /*
@@ -19,6 +23,9 @@ import scala.collection.mutable.HashMap
  *  S is the grid size for the initial placement of super pixel centers. 
  *  
  */
+
+case class DatumCord[DataType](x: Int, y: Int, z: Int, cont: DataType)
+
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      sumFn: ((DataType, DataType) => DataType),
                      normFn: ((DataType, Int) => DataType),
@@ -44,7 +51,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
   val initCenter = placeInitSuperCenters(S)
   val centerCoords = moveInitSuperCentersToLowContrast(initCenter, 3)
   val clusterAssign = Array.fill(xDim, yDim, zDim) { -1 }.par //TODO Can be changed to Range for less memory usage
-  println(" clusterAssign size = " + clusterAssign.size )
+  println(" clusterAssign size = " + clusterAssign.size)
   val centers = centerCoords.map(a => DatumCord(a._1, a._2, a._3, image(a._1)(a._2)(a._3))).par
   val lastDistance = Array.fill(xDim, yDim, zDim) { Double.MaxValue }.par
   val t0 = System.currentTimeMillis()
@@ -53,8 +60,6 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
   println((t0 - t1) + " for clusterMax Inst")
   val clusterMaxSpaceDist = Array.fill(centers.size) { Double.MinValue }
   println((System.currentTimeMillis() - t1) + "line 75")
-
-  case class DatumCord[DataType](x: Int, y: Int, z: Int, cont: DataType)
 
   def placeInitSuperCenters(gridInterval: Int): Array[(Int, Int, Int)] = {
 
@@ -264,7 +269,6 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
     val islandSize = new ListBuffer[Int]
 
-    
     val remainingSmallIsland: scala.collection.parallel.mutable.ParSet[HashSet[(Int, Int, Int)]] = scala.collection.parallel.mutable.ParSet()
     val remainingBigIslands: scala.collection.parallel.mutable.ParSet[HashSet[(Int, Int, Int)]] = scala.collection.parallel.mutable.ParSet()
 
@@ -294,12 +298,10 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                     })
 
                   } else {
-                    
-                    
-                    
+
                     print("(B" + curBlob.size + ")")
-                    
-                    var neighCount = new HashMap[Int,Int]()
+
+                    var neighCount = new HashMap[Int, Int]()
                     var bestLab = -1
                     var bestCount = 0
                     curBlob.foreach((cord) => {
@@ -308,22 +310,22 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                         val curY = cord._2 + dy(n)
                         val curZ = cord._3 + dz(n)
                         if (boundCheck(curX, curY, curZ, xDim, yDim, zDim)) {
-                          if (!curBlob.contains((curX, curY, curZ))){
-                            val other =clusterAssign(curX)(curY)(curZ) 
-                              val old = neighCount.getOrElse(other, 0)
-                              neighCount.put(other,old+1)
-                              if(old+1>bestCount){
-                                bestCount=old+1
-                                bestLab = other
-                              }
-                                
+                          if (!curBlob.contains((curX, curY, curZ))) {
+                            val other = clusterAssign(curX)(curY)(curZ)
+                            val old = neighCount.getOrElse(other, 0)
+                            neighCount.put(other, old + 1)
+                            if (old + 1 > bestCount) {
+                              bestCount = old + 1
+                              bestLab = other
+                            }
+
                           }
-                            
+
                         }
                       }
 
                     })
-                    assert(bestLab!=(-1))
+                    assert(bestLab != (-1))
                     curBlob.foreach((cord) => {
                       clusterAssign(cord._1)(cord._2)(cord._3) = bestLab
                     })
@@ -331,12 +333,11 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                   }
                 } else if (foundGroup == (-1)) {
                   islandSize += (curBlob.size)
-                   if (curBlob.size > minBlobSize) { //The cluster is big enough to warrent it creating a new center
+                  if (curBlob.size > minBlobSize) { //The cluster is big enough to warrent it creating a new center
                     remainingBigIslands.+=(curBlob)
+                  } else {
+                    remainingSmallIsland.+=(curBlob)
                   }
-                   else{
-                     remainingSmallIsland.+=(curBlob)
-                   }
                 } else if (foundGroup == clusterAssign(vX)(vY)(vZ)) {
                   curBlob.foreach(a => {
                     val x = a._1
@@ -346,7 +347,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                   })
                   //   curBlob = new HashSet[(Int, Int, Int)]
                 } else {
-                  
+
                   println("Error, should not get here #DASDWQ")
                   assert(false)
                 }
@@ -357,7 +358,6 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       }
     }
 
-    
     val tBig = System.currentTimeMillis()
     var newLabel = atomicNextLabel.get
     remainingBigIslands.foreach(blob => {
@@ -367,32 +367,33 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       })
       newLabel += 1
     })
-    
-    
-   val listSmallIslands = remainingSmallIsland.flatMap( cordBlob=> {cordBlob.toList}).toArray
-   val remaining = scala.collection.mutable.HashSet[Int]()++=(0 until listSmallIslands.size).toList
-   
-   while(remaining.size>0){
-     println("#remaining("+remaining.size+")")
-     val removeFromRemaining = Stack[Int]()
-     remaining.foreach { cordIDX => {
-       val cord = listSmallIslands(cordIDX)
-       for (n <- 0 until dx.size) { //TODO after we compare to c++ move this into the while loop and count all edges
-                        val curX = cord._1 + dx(n)
-                        val curY = cord._2 + dy(n)
-                        val curZ = cord._3 + dz(n)
-                        if (boundCheck(curX, curY, curZ, xDim, yDim, zDim)) {
-                          val neigh = blobConnections(curX)(curY)(curZ)
-                          if(neigh>=0){
-                            blobConnections(cord._1)(cord._2)(cord._3)= neigh
-                            clusterAssign(cord._1)(cord._2)(cord._3) = neigh
-                            removeFromRemaining.push(cordIDX)
-                          } 
-                        }
-                      }
-     } }
-     removeFromRemaining.foreach { rmCord => remaining.remove(rmCord) }
-   }
+
+    val listSmallIslands = remainingSmallIsland.flatMap(cordBlob => { cordBlob.toList }).toArray
+    val remaining = scala.collection.mutable.HashSet[Int]() ++= (0 until listSmallIslands.size).toList
+
+    while (remaining.size > 0) {
+      println("#remaining(" + remaining.size + ")")
+      val removeFromRemaining = Stack[Int]()
+      remaining.foreach { cordIDX =>
+        {
+          val cord = listSmallIslands(cordIDX)
+          for (n <- 0 until dx.size) { //TODO after we compare to c++ move this into the while loop and count all edges
+            val curX = cord._1 + dx(n)
+            val curY = cord._2 + dy(n)
+            val curZ = cord._3 + dz(n)
+            if (boundCheck(curX, curY, curZ, xDim, yDim, zDim)) {
+              val neigh = blobConnections(curX)(curY)(curZ)
+              if (neigh >= 0) {
+                blobConnections(cord._1)(cord._2)(cord._3) = neigh
+                clusterAssign(cord._1)(cord._2)(cord._3) = neigh
+                removeFromRemaining.push(cordIDX)
+              }
+            }
+          }
+        }
+      }
+      removeFromRemaining.foreach { rmCord => remaining.remove(rmCord) }
+    }
     /*
       remainingSmallIsland.foreach( curBlob=>{
         if(curBlob.size>0) {
@@ -437,7 +438,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
       })
     */
-    
+
     return clusterAssign
   }
 
@@ -651,8 +652,172 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
     return clusterAssign.toArray //TODO This should never be touched, I can force this by putting an assurt that the connectivityOption is only one of the above options
   }
-  
-  def constructGraph(){}
+
+  def findSupPixelCenterOfMassAndSize(supPixelId: Array[Array[Array[Int]]]): (HashMap[Int, (Int, Int, Int)], HashMap[Int, Int]) = {
+    val xDim = supPixelId.length
+    val yDim = supPixelId(0).length
+    val zDim = supPixelId(0)(0).length
+    val supPixCount = HashMap[Int, Int]()
+    val supPixSum = HashMap[Int, (Int, Int, Int)]()
+    for (x <- 0 until xDim; y <- 0 until yDim; z <- 0 until zDim) {
+      val curId = supPixelId(x)(y)(z)
+      val oldC = supPixCount.getOrElse(curId, 0)
+      supPixCount.put(curId, oldC + 1)
+      val oldS = supPixSum.getOrElse(curId, (0, 0, 0))
+      supPixSum.put(curId, (oldS._1 + x, oldS._2 + y, oldS._3 + z))
+    }
+    supPixCount.keySet.foreach { key =>
+      {
+        val sum = supPixSum.get(key).get
+        val cou = supPixCount.get(key).get
+        supPixSum.put(key, (sum._1 / cou, sum._2 / cou, sum._3 / cou))
+      }
+    }
+    return (supPixSum, supPixCount)
+  }
+  def findEdges_simple(supPixelIdmask: Array[Array[Array[Int]]], centers: HashMap[Int, (Int, Int, Int)]): HashMap[Int, Set[Int]] = {
+    val xDim = supPixelIdmask.length
+    val yDim = supPixelIdmask(0).length
+    val zDim = supPixelIdmask(0)(0).length
+    val out = HashMap[Int, Set[Int]]()
+    centers.keySet.foreach { id =>
+      {
+        val c = centers.get(id).get
+        val edges = ListBuffer[Int]()
+
+        //Walk in each straight direction and find the next superPixel
+        var dx = 1
+        while (dx + c._1 < xDim) {
+          if (supPixelIdmask(c._1 + dx)(c._2)(c._3) != id) {
+            edges += (supPixelIdmask(c._1 + dx)(c._2)(c._3))
+            dx = Integer.MAX_VALUE
+          }
+          dx += 1
+        }
+        dx = (-1)
+        while (dx + c._1 >= 0) {
+          if (supPixelIdmask(c._1 + dx)(c._2)(c._3) != id) {
+            edges += (supPixelIdmask(c._1 + dx)(c._2)(c._3))
+            dx = Integer.MIN_VALUE
+          }
+          dx -= 1
+        }
+
+        var dy = 1
+        while (dy + c._2 < yDim) {
+          if (supPixelIdmask(c._1)(c._2 + dy)(c._3) != id) {
+            edges += (supPixelIdmask(c._1)(c._2 + dy)(c._3))
+            dy = Integer.MAX_VALUE
+          }
+          dy += 1
+        }
+        dy = (-1)
+        while (dy + c._2 >= 0) {
+          if (supPixelIdmask(c._1)(c._2 + dy)(c._3) != id) {
+            edges += (supPixelIdmask(c._1)(c._2 + dy)(c._3))
+            dy = Integer.MIN_VALUE
+          }
+          dy -= 1
+        }
+        var dz = 1
+        while (dz + c._3 < zDim) {
+          if (supPixelIdmask(c._1)(c._2)(c._3 + dz) != id) {
+            edges += (supPixelIdmask(c._1)(c._2)(c._3 + dz))
+            dz = Integer.MAX_VALUE
+          }
+          dz += 1
+        }
+        dz = (-1)
+        while (dz + c._3 >= 0) {
+          if (supPixelIdmask(c._1)(c._2)(c._3 + dz) != id) {
+            edges += (supPixelIdmask(c._1)(c._2)(c._3 + dz))
+            dz = Integer.MIN_VALUE
+          }
+          dz -= 1
+        }
+        out.put(id, edges.toSet)
+
+      }
+    }
+    return out
+  }
+
+  def findSupPixelBounds(supPixelId: Array[Array[Array[Int]]]): (Map[Int, List[DatumCord[DataType]]], Map[Int, HashMap[Int, Int]]) = {
+
+    val cordWiseBlobs = HashMap[Int, List[DatumCord[DataType]]]()
+    val supPixEdgeCount = HashMap[Int, HashMap[Int, Int]]()
+    val xDim = supPixelId.length
+    val yDim = supPixelId(0).length
+    val zDim = supPixelId(0)(0).length
+
+    for (x <- 0 until xDim; y <- 0 until yDim; z <- 0 until zDim) {
+      val curId = supPixelId(x)(y)(z)
+      val (allGood, myBlob, myEdges) = findBlobBounds_Rec(supPixelId, x, y, z, curId, new HashSet[(Int, Int, Int)](), new HashMap[Int, Int]())
+      val blobWithData = myBlob.toList.map(a => DatumCord(a._1, a._2, a._3, image(a._1)(a._2)(a._3)))
+      cordWiseBlobs.put(curId, blobWithData)
+      supPixEdgeCount.put(curId, myEdges)
+    }
+    return (cordWiseBlobs.toMap, supPixEdgeCount.toMap)
+  }
+
+  def findBlobBounds_Rec(supPixelId: Array[Array[Array[Int]]], x: Int, y: Int, z: Int, lastLabel: Int, myBlob: HashSet[(Int, Int, Int)], edgeCount: HashMap[Int, Int]): (Boolean, HashSet[(Int, Int, Int)], HashMap[Int, Int]) = {
+    val xDim = supPixelId.length
+    val yDim = supPixelId(0).length
+    val zDim = supPixelId(0)(0).length
+
+    if (x >= 0 & x < xDim & y >= 0 & y < yDim & z >= 0 & z < zDim) {
+
+      if (supPixelId(x)(y)(z) == lastLabel) {
+        myBlob += ((x, y, z))
+
+        var outBlob = myBlob
+        var outEdge = edgeCount
+        for (d <- 0 until dx.size) {
+          val nX = x + dx(d)
+          val nY = y + dy(d)
+          val nZ = z + dz(d)
+
+          if (boundCheck(nX, nY, nZ, xDim, yDim, zDim))
+            if (supPixelId(nX)(nY)(nZ) == lastLabel) {
+              if (!(outBlob.contains((nX, nY, nZ)))) {
+                val ret = findBlobBounds_Rec(supPixelId, nX, nY, nZ, lastLabel, outBlob, outEdge)
+                if (ret._1) { //this boolean just checks if something was added
+                  outBlob = ret._2
+                  outEdge = ret._3
+                }
+              }
+            } else {
+              val old = outEdge.getOrElse(supPixelId(nX)(nY)(nZ), 0)
+              outEdge.put(supPixelId(nX)(nY)(nZ), old + 1)
+            }
+        }
+        return (true, outBlob, outEdge)
+      } else
+        return (false, myBlob, edgeCount)
+
+    } else
+      return (false, myBlob, edgeCount)
+
+  }
+
+  def prepareGraph(supPixelId: Array[Array[Array[Int]]], featureFn: (List[DatumCord[DataType]]) => Vector[Double]): (List[Vector[Double]], HashMap[Int, Set[Int]]) = {
+    val (supPixCenter, supPixSize) = findSupPixelCenterOfMassAndSize(supPixelId)
+    val edgeMap = findEdges_simple(supPixelId, supPixCenter)
+    val (cordWiseBlobs, supPixEdgeCount) = findSupPixelBounds(supPixelId)
+    //make sure superPixelId's are ascending Ints
+    val keys = (cordWiseBlobs.keySet).toList.sortWith(_ < _)
+    val keymap = (keys.zip(0 until keys.size)).toMap
+    def k(a: Int): Int = { keymap.get(a).get }
+
+    val listOfFeatures = for (i <- 0 until keys.size) yield { featureFn(cordWiseBlobs.get(keys(i)).get) }
+    val outEdgeMap = edgeMap.map(a => {
+      val oldId = a._1
+      val oldEdges = a._2
+      (k(oldId), oldEdges.map { oldEdge => k(oldEdge) })
+    })
+    return (listOfFeatures.toList, outEdgeMap)
+
+  }
 
   def clusterAssign(x: Int, y: Int, z: Int): Int = clusterAssign(x)(y)(z)
 
