@@ -4,6 +4,7 @@ import breeze.linalg._
 import breeze.stats.DescriptiveStats._
 import breeze.stats._
 import breeze.numerics._
+import breeze.linalg._
 import ij.plugin.Duplicator
 import scala.util.matching.Regex
 import java.io.File
@@ -97,10 +98,38 @@ object scratch2 {
       copyImage(x)(y)(z)= (colMod.getRed(curV),colMod.getGreen(curV),colMod.getBlue(curV))
     }
     
+
     
     val distFn = (a:(Int,Int,Int),b:(Int,Int,Int))=>sqrt(Math.pow(a._1-b._1,2)+Math.pow(a._2-b._2,2)+Math.pow(a._3-b._3,2))
     val sumFn  = (a:(Int,Int,Int),b:(Int,Int,Int))=>((a._1+b._1,a._2+b._2,a._3+a._3))
     val normFn = (a:(Int,Int,Int),n:Int)   =>((a._1/n,a._2/n,a._3/n))
+    
+    
+    val allGr =  new SLIC[(Int,Int,Int)](distFn,sumFn,normFn,copyImage,30,15,minChangePerIter=0.002,connectivityOption="Imperative",debug=false)
+    val mask = allGr.calcSuperPixels()
+    
+    val histBinsPerCol = 3
+    val histWidt = 255/histBinsPerCol
+    val featureFn = (data: List[DatumCord[(Int,Int,Int)]]) => {
+      val redHist = Array.fill(histBinsPerCol){0}
+      val greenHist = (Array.fill(histBinsPerCol){0})
+      val blueHist = (Array.fill(histBinsPerCol){0})
+      data.foreach( a=>{
+        // redHist( max(0, min( (a.cont._1/histWidt)-1,3) ))+=1
+        // greenHist( max(0, min( (a.cont._2/histWidt)-1,3) ))+=1
+        // blueHist( max(0, min( (a.cont._3/histWidt)-1,3) ))+=1
+         
+           redHist( min(histBinsPerCol-1,(a.cont._1/histWidt)))+=1
+         greenHist( min(histBinsPerCol-1,(a.cont._2/histWidt)))+=1
+         blueHist( min(histBinsPerCol-1,(a.cont._3/histWidt)))+=1
+         
+      })
+      val all = List(redHist,greenHist,blueHist).flatten
+      val mySum = all.sum
+     Vector(all.map(a=>(a.asInstanceOf[Double]/mySum)).toArray)
+    }
+    val ( feat , ma ) = allGr.prepareGraph(mask, featureFn)
+     
     
     val allNo =  new SLIC[(Int,Int,Int)](distFn,sumFn,normFn,copyImage,30,15,minChangePerIter=0.002,connectivityOption="None",debug=false)
     printSuperPixels(allNo.calcSuperPixels(),img,label=(fName.substring(0,fName.length-4)+"None"))

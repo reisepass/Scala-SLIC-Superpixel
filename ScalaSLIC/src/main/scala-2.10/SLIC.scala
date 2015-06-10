@@ -24,7 +24,7 @@ import breeze.numerics.sqrt
  *  
  */
 
-case class DatumCord[DataType](x: Int, y: Int, z: Int, cont: DataType)
+//case class DatumCord[DataType](x: Int, y: Int, z: Int, cont: DataType)
 
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      sumFn: ((DataType, DataType) => DataType),
@@ -687,51 +687,56 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
         //Walk in each straight direction and find the next superPixel
         var dx = 1
-        while (dx + c._1 < xDim) {
+        var stop = false
+        while (dx + c._1 < xDim & !stop) {
           if (supPixelIdmask(c._1 + dx)(c._2)(c._3) != id) {
             edges += (supPixelIdmask(c._1 + dx)(c._2)(c._3))
-            dx = Integer.MAX_VALUE
+            stop = true
           }
           dx += 1
         }
+        stop = false
         dx = (-1)
-        while (dx + c._1 >= 0) {
+        while (dx + c._1 >= 0 & !stop) {
           if (supPixelIdmask(c._1 + dx)(c._2)(c._3) != id) {
             edges += (supPixelIdmask(c._1 + dx)(c._2)(c._3))
-            dx = Integer.MIN_VALUE
+            stop = true
           }
           dx -= 1
         }
-
+        stop = false
         var dy = 1
-        while (dy + c._2 < yDim) {
+        while (dy + c._2 < yDim & !stop) {
           if (supPixelIdmask(c._1)(c._2 + dy)(c._3) != id) {
             edges += (supPixelIdmask(c._1)(c._2 + dy)(c._3))
-            dy = Integer.MAX_VALUE
+            stop = true
           }
           dy += 1
         }
+        stop = false
         dy = (-1)
-        while (dy + c._2 >= 0) {
+        while (dy + c._2 >= 0 & !stop) {
           if (supPixelIdmask(c._1)(c._2 + dy)(c._3) != id) {
             edges += (supPixelIdmask(c._1)(c._2 + dy)(c._3))
-            dy = Integer.MIN_VALUE
+            stop = true
           }
           dy -= 1
         }
+        stop = false
         var dz = 1
-        while (dz + c._3 < zDim) {
+        while (dz + c._3 < zDim & !stop) {
           if (supPixelIdmask(c._1)(c._2)(c._3 + dz) != id) {
             edges += (supPixelIdmask(c._1)(c._2)(c._3 + dz))
-            dz = Integer.MAX_VALUE
+            stop = true
           }
           dz += 1
         }
+        stop = false
         dz = (-1)
-        while (dz + c._3 >= 0) {
+        while (dz + c._3 >= 0 & !stop) {
           if (supPixelIdmask(c._1)(c._2)(c._3 + dz) != id) {
             edges += (supPixelIdmask(c._1)(c._2)(c._3 + dz))
-            dz = Integer.MIN_VALUE
+            stop = true
           }
           dz -= 1
         }
@@ -805,7 +810,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     val edgeMap = findEdges_simple(supPixelId, supPixCenter)
     val (cordWiseBlobs, supPixEdgeCount) = findSupPixelBounds(supPixelId)
     //make sure superPixelId's are ascending Ints
-    val keys = (cordWiseBlobs.keySet).toList.sortWith(_ < _)
+    val keys = cordWiseBlobs.keySet.toList.sorted
     val keymap = (keys.zip(0 until keys.size)).toMap
     def k(a: Int): Int = { keymap.get(a).get }
 

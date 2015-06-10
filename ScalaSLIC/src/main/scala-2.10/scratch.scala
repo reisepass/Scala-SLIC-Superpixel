@@ -123,6 +123,9 @@ object scratch {
     val normFn = (a:Double,b:Int)   =>(a/b)
     
      
+    
+    
+    
     val allIm =  new SLIC[Double](distFn,sumFn,normFn,copyImg,20,15,minChangePerIter=0.002,connectivityOption="Imperative",debug=false)
      printSuperPixels(allIm.calcSuperPixels(),imp2,300.0,"Imperative")
      
