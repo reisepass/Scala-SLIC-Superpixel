@@ -264,7 +264,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
     val islandSize = new ListBuffer[Int]
 
-    val what = List(1, 2, 3, 4).par
+    
     val remainingSmallIsland: scala.collection.parallel.mutable.ParSet[HashSet[(Int, Int, Int)]] = scala.collection.parallel.mutable.ParSet()
     val remainingBigIslands: scala.collection.parallel.mutable.ParSet[HashSet[(Int, Int, Int)]] = scala.collection.parallel.mutable.ParSet()
 
@@ -294,6 +294,9 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                     })
 
                   } else {
+                    
+                    
+                    
                     print("(B" + curBlob.size + ")")
                     
                     var neighCount = new HashMap[Int,Int]()
@@ -330,7 +333,69 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                   islandSize += (curBlob.size)
                    if (curBlob.size > minBlobSize) { //The cluster is big enough to warrent it creating a new center
                     remainingBigIslands.+=(curBlob)
-                  } else if(curBlob.size>0) {
+                  }
+                   else{
+                     remainingSmallIsland.+=(curBlob)
+                   }
+                } else if (foundGroup == clusterAssign(vX)(vY)(vZ)) {
+                  curBlob.foreach(a => {
+                    val x = a._1
+                    val y = a._2
+                    val z = a._3
+                    blobConnections(x)(y)(z) = foundGroup //TODO this is unnecessary alreayd done inside findConnection_f
+                  })
+                  //   curBlob = new HashSet[(Int, Int, Int)]
+                } else {
+                  
+                  println("Error, should not get here #DASDWQ")
+                  assert(false)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    
+    val tBig = System.currentTimeMillis()
+    var newLabel = atomicNextLabel.get
+    remainingBigIslands.foreach(blob => {
+      blob.foreach(cord => {
+        clusterAssign(cord._1)(cord._2)(cord._3) = newLabel
+        blobConnections(cord._1)(cord._2)(cord._3) = newLabel
+      })
+      newLabel += 1
+    })
+    
+    
+   val listSmallIslands = remainingSmallIsland.flatMap( cordBlob=> {cordBlob.toList}).toArray
+   val remaining = scala.collection.mutable.HashSet[Int]()++=(0 until listSmallIslands.size).toList
+   
+   while(remaining.size>0){
+     println("#remaining("+remaining.size+")")
+     val removeFromRemaining = Stack[Int]()
+     remaining.foreach { cordIDX => {
+       val cord = listSmallIslands(cordIDX)
+       for (n <- 0 until dx.size) { //TODO after we compare to c++ move this into the while loop and count all edges
+                        val curX = cord._1 + dx(n)
+                        val curY = cord._2 + dy(n)
+                        val curZ = cord._3 + dz(n)
+                        if (boundCheck(curX, curY, curZ, xDim, yDim, zDim)) {
+                          val neigh = blobConnections(curX)(curY)(curZ)
+                          if(neigh>=0){
+                            blobConnections(cord._1)(cord._2)(cord._3)= neigh
+                            clusterAssign(cord._1)(cord._2)(cord._3) = neigh
+                            removeFromRemaining.push(cordIDX)
+                          } 
+                        }
+                      }
+     } }
+     removeFromRemaining.foreach { rmCord => remaining.remove(rmCord) }
+   }
+    /*
+      remainingSmallIsland.foreach( curBlob=>{
+        if(curBlob.size>0) {
                     
                     var neighCount = new HashMap[Int,Int]()
                     var bestLab = -1
@@ -370,38 +435,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                     
                   }
 
-                } else if (foundGroup == clusterAssign(vX)(vY)(vZ)) {
-                  
-                  curBlob.foreach(a => {
-                    val x = a._1
-                    val y = a._2
-                    val z = a._3
-                    blobConnections(x)(y)(z) = foundGroup //TODO this is unnecessary alreayd done inside findConnection_f
-                  })
-                  //   curBlob = new HashSet[(Int, Int, Int)]
-                } else {
-                  println("Error, should not get here #DASDWQ")
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    /*
-    val tBig = System.currentTimeMillis()
-    var newLabel = atomicNextLabel.get
-    remainingBigIslands.foreach(blob => {
-      blob.foreach(cord => {
-        clusterAssign(cord._1)(cord._2)(cord._3) = newLabel
       })
-      newLabel += 1
-    })
-    * 
     */
-
-    
     
     return clusterAssign
   }
@@ -616,6 +651,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
     return clusterAssign.toArray //TODO This should never be touched, I can force this by putting an assurt that the connectivityOption is only one of the above options
   }
+  
+  def constructGraph(){}
 
   def clusterAssign(x: Int, y: Int, z: Int): Int = clusterAssign(x)(y)(z)
 
