@@ -1,4 +1,5 @@
 import ij._
+
 import ij.io.Opener
 import javax.imageio.ImageIO
 import java.io.File
@@ -14,6 +15,8 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.LinkedList
 import scala.util.Random
+import ch.ethz.dalab.scalaslic.SLIC
+import ch.ethz.dalab.scalaslic.DatumCord
 
 object testImageJ {
 

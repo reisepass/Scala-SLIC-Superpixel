@@ -5,7 +5,8 @@ import breeze.stats.DescriptiveStats._
 import breeze.stats._
 import breeze.numerics._
 import ij.plugin.Duplicator
-
+import ch.ethz.dalab.scalaslic.SLIC
+import ch.ethz.dalab.scalaslic.DatumCord
 
 object scratch {
    def main(args: Array[String]): Unit = {

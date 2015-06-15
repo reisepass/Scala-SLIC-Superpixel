@@ -1,16 +1,12 @@
+package ch.ethz.dalab.scalaslic
 
 import java.util.concurrent.atomic.AtomicInteger
-
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
-import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.collection.parallel.mutable.ParMap
 import scala.util.Random
-
 import breeze.linalg.Vector
 import breeze.numerics.floor
 import breeze.numerics.round
@@ -25,6 +21,8 @@ import breeze.numerics.sqrt
  */
 
 //case class DatumCord[DataType](x: Int, y: Int, z: Int, cont: DataType)
+
+case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      sumFn: ((DataType, DataType) => DataType),
@@ -50,8 +48,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
   val initCenter = placeInitSuperCenters(S)
   val centerCoords = moveInitSuperCentersToLowContrast(initCenter, 3)
-  val clusterAssign = Array.fill(xDim, yDim, zDim) { -1 }.par //TODO Can be changed to Range for less memory usage
-  println(" clusterAssign size = " + clusterAssign.size)
+  val clusterAssign = Array.fill(xDim, yDim, zDim) { -4 }.par //TODO Can be changed to Range for less memory usage
+  println(" clusterAssign size = " + clusterAssign.size +" firstEl:"+clusterAssign(0)(0)(0))
   val centers = centerCoords.map(a => DatumCord(a._1, a._2, a._3, image(a._1)(a._2)(a._3))).par
   val lastDistance = Array.fill(xDim, yDim, zDim) { Double.MaxValue }.par
   val t0 = System.currentTimeMillis()
@@ -472,6 +470,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
           }
 
         }
+        
         val totalBlob = Stack[(Int, Int, Int)]()
         while (workingBlob.size > 0) {
           val cur = workingBlob.pop
@@ -484,6 +483,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
               if (outLabels(curX)(curY)(curZ) < 0 & oldLabels(curX)(curY)(curZ) == oldLabels(oX)(oY)(oZ)) {
                 workingBlob.push((curX, curY, curZ))
                 outLabels(curX)(curY)(curZ) = newLabel
+                
               }
 
             }
@@ -491,7 +491,10 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
           }
         }
         if (totalBlob.size <= minBlobSize) {
-          totalBlob.foreach(a => { outLabels(a._1)(a._2)(a._3) = adjLabel })
+          if(adjLabel==(-1)) //This can happen if the first pixel is surrounded by pixels labeled differently
+            totalBlob.foreach(a => { outLabels(a._1)(a._2)(a._3) = newLabel })
+          else
+             totalBlob.foreach(a => { outLabels(a._1)(a._2)(a._3) = adjLabel })
           newLabel -= 1
         }
         newLabel += 1
@@ -528,7 +531,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
             vY <- center.y - 2 * S until center.y + 2 * S;
             vZ <- center.z - 2 * S until center.z + 2 * S
           ) {
-            if (!(vX < 0 || vX >= xDim || vY < 0 || vY >= yDim || vZ < 0 || vZ >= zDim)) {
+            if (boundCheck(vX,vY,vZ, xDim, yDim, zDim)) {
 
               val curVox = DatumCord(vX, vY, vZ, image(vX)(vY)(vZ))
               val curD = clusterDist(curVox, cIDX)
@@ -631,7 +634,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     }
     if (connectivityOption == "Functional" || connectivityOption == "Functional2") {
       val tConF = System.currentTimeMillis()
-      val assignAfterEnf_f = enforceConnectivity_F(clusterAssign.toArray, minBlobSize)
+      val localC = clusterAssign.toArray
+      val assignAfterEnf_f = enforceConnectivity_F(localC, minBlobSize)
       println()
       println("Enfroce Connectivity (F " + (System.currentTimeMillis() - tConF) + ") ")
       println()
@@ -639,7 +643,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     }
     if (connectivityOption == "Imperative") {
       val tConI = System.currentTimeMillis()
-      val assingAfterEnf_i = enforceConnectivity_I(clusterAssign.toArray, minBlobSize)
+      val localC = clusterAssign.toArray
+      val assingAfterEnf_i = enforceConnectivity_I(localC, minBlobSize)
       println()
       println("Enfroce Connectivity (I " + (System.currentTimeMillis() - tConI) + ") ")
       println()
@@ -761,6 +766,8 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       val blobWithData = myBlob.toList.map(a => DatumCord(a._1, a._2, a._3, image(a._1)(a._2)(a._3)))
       cordWiseBlobs.put(curId, blobWithData)
       supPixEdgeCount.put(curId, myEdges)
+      if(curId == -1)
+        print("should not find id = -1")
     }
     return (cordWiseBlobs.toMap, supPixEdgeCount.toMap)
   }
