@@ -506,6 +506,32 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
   }
 
+  def calcSimpleSquaresSupPix():Array[Array[Array[Int]]] = {
+    assert(xDim > 0 & yDim > 0 & zDim > 0)
+    val tt0 = System.currentTimeMillis()
+    
+    val maxSuperX = xDim/S
+    val maxSuperY = yDim/S
+    val maxSuperZ = zDim/S
+    val supID = new AtomicInteger(0)
+    val out = Array.fill(xDim,yDim,zDim){-1}
+    for ( X <- 0 to maxSuperX; Y <- 0 to maxSuperY ; Z <- 0 to maxSuperZ){
+      val curSupPix = supID.getAndIncrement
+      
+      val boundX = if(X==maxSuperX& (S+S*X<xDim) ) xDim else S+S*X //Incase we cant divide the space into equaly sized squares we just extend the last square to fill the space
+      val boundY = if(Y==maxSuperY& (S+S*Y<yDim)) yDim else S+S*Y
+      val boundZ = if(Z==maxSuperZ& (S+S*Z<zDim)) zDim else S+S*Z
+      for(x <- X*S to boundX ; y<- Y*S to boundY; z <- Z*S to boundZ){
+        if(boundCheck(x, y, z, xDim, yDim, zDim)){
+                  out(x)(y)(z)=curSupPix
+        clusterAssign(x)(y)(z)=curSupPix
+        }
+      }
+        
+    }
+    out
+  }
+  
   def calcSuperPixels(): Array[Array[Array[Int]]] = {
 
     if (debug)
@@ -562,7 +588,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
                 {
 
                   val usedForC = clusterAssign(vX)(vY)(vZ)
-                  if (usedForC != (-1)) {
+                  if (usedForC >=0) {
                     if (updateCalcSum.contains(usedForC)) {
                       val old = updateCalcSum(usedForC)
                       updateCalcSum.put(usedForC, DatumCord(vX + old.x, vY + old.y, vZ + old.z, sumFn(image(vX)(vY)(vZ), old.cont)))

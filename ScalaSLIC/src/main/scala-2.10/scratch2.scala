@@ -10,6 +10,7 @@ import scala.util.matching.Regex
 import java.io.File
 import ch.ethz.dalab.scalaslic.SLIC
 import ch.ethz.dalab.scalaslic.DatumCord
+import scala.collection.mutable.ListBuffer
 
 object scratch2 {
 
@@ -93,11 +94,29 @@ object scratch2 {
           val curV = aStack.getVoxel(x, y, z).asInstanceOf[Int]
           copyImage(x)(y)(z) = (colMod.getRed(curV), colMod.getGreen(curV), colMod.getBlue(curV))
         }
+        
+        
+      
+        
 
         val distFn = (a: (Int, Int, Int), b: (Int, Int, Int)) => sqrt(Math.pow(a._1 - b._1, 2) + Math.pow(a._2 - b._2, 2) + Math.pow(a._3 - b._3, 2))
         val sumFn = (a: (Int, Int, Int), b: (Int, Int, Int)) => ((a._1 + b._1, a._2 + b._2, a._3 + a._3))
         val normFn = (a: (Int, Int, Int), n: Int) => ((a._1 / n, a._2 / n, a._3 / n))
 
+        
+        val allSq = new SLIC[(Int, Int, Int)](distFn, sumFn, normFn, copyImage, 30, 15, minChangePerIter = 0.002, connectivityOption = "Imperative", debug = false)
+        val sqMask = allSq.calcSimpleSquaresSupPix()
+        
+        val meeBuf = new ListBuffer[(Int,Int,Int)]()
+        for( x<- 0 until sqMask.length;y<-0 until sqMask(0).length;z<-0 until sqMask(0)(0).length){
+          if(sqMask(x)(y)(z)==(-1))
+            meeBuf+=((x,y,z))
+        }
+        val sss = meeBuf.size
+        printSuperPixels(sqMask, img, label = (fName.substring(0, fName.length - 4) + "None"))
+
+        
+        
         val allGr = new SLIC[(Int, Int, Int)](distFn, sumFn, normFn, copyImage, 30, 15, minChangePerIter = 0.002, connectivityOption = "Imperative", debug = false)
         val mask = allGr.calcSuperPixels()
 
@@ -119,6 +138,8 @@ object scratch2 {
         }
         val (feat, ma) = allGr.prepareGraph(mask, featureFn)
 
+        
+        
         val allNo = new SLIC[(Int, Int, Int)](distFn, sumFn, normFn, copyImage, 30, 15, minChangePerIter = 0.002, connectivityOption = "None", debug = false)
         printSuperPixels(allNo.calcSuperPixels(), img, label = (fName.substring(0, fName.length - 4) + "None"))
 
