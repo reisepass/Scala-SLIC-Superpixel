@@ -797,6 +797,25 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     }
     return (cordWiseBlobs.toMap, supPixEdgeCount.toMap)
   }
+  
+  def findSupPixelBounds_I(supPixelId: Array[Array[Array[Int]]]): Map[Int, List[DatumCord[DataType]]] = {
+        val xDim = supPixelId.length
+    val yDim = supPixelId(0).length
+    val zDim = supPixelId(0)(0).length
+    val cordWiseBlobs = HashMap[Int, ListBuffer[DatumCord[DataType]]]()
+    
+    for (x <- 0 until xDim; y <- 0 until yDim; z <- 0 until zDim) {
+      val curId = supPixelId(x)(y)(z)
+            if(curId == -1)
+        print("should not find id = -1")
+        
+      if(!cordWiseBlobs.contains(curId))
+        cordWiseBlobs.put(curId,new ListBuffer[DatumCord[DataType]]())
+      cordWiseBlobs.get(curId).get+=DatumCord(x,y,z,image(x)(y)(z))
+    }
+    
+    cordWiseBlobs.toMap.map{ case (key,value)=>(key,value.toList)}
+  }
 
   def findBlobBounds_Rec(supPixelId: Array[Array[Array[Int]]], x: Int, y: Int, z: Int, lastLabel: Int, myBlob: HashSet[(Int, Int, Int)], edgeCount: HashMap[Int, Int]): (Boolean, HashSet[(Int, Int, Int)], HashMap[Int, Int]) = {
     val xDim = supPixelId.length
