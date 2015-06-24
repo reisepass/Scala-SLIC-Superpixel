@@ -27,7 +27,7 @@ case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      sumFn: ((DataType, DataType) => DataType),
                      normFn: ((DataType, Int) => DataType),
-                     image: Array[Array[Array[DataType]]], S: Int, K: Int, maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
+                     image: Array[Array[Array[DataType]]], S: Int, K:Int=5, maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
                      connectivityOption: String = "Functional", debug: Boolean = true) {
 
   //TODO try out different tif image stacks and see what dim2 is 
@@ -516,13 +516,18 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     val supID = new AtomicInteger(0)
     val out = Array.fill(xDim,yDim,zDim){-1}
     for ( X <- 0 to maxSuperX; Y <- 0 to maxSuperY ; Z <- 0 to maxSuperZ){
-      val curSupPix = supID.getAndIncrement
+      var hasInc =false
+      var curSupPix = supID.get
       
       val boundX = if(X==maxSuperX& (S+S*X<xDim) ) xDim else S+S*X //Incase we cant divide the space into equaly sized squares we just extend the last square to fill the space
       val boundY = if(Y==maxSuperY& (S+S*Y<yDim)) yDim else S+S*Y
       val boundZ = if(Z==maxSuperZ& (S+S*Z<zDim)) zDim else S+S*Z
       for(x <- X*S to boundX ; y<- Y*S to boundY; z <- Z*S to boundZ){
         if(boundCheck(x, y, z, xDim, yDim, zDim)){
+          if(!hasInc){
+            curSupPix=supID.getAndIncrement
+            hasInc=true
+          }
                   out(x)(y)(z)=curSupPix
         clusterAssign(x)(y)(z)=curSupPix
         }
