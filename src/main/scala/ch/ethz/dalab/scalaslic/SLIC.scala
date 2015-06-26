@@ -25,7 +25,7 @@ import breeze.numerics.sqrt
 case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
-                     sumFn: ((DataType, DataType) => DataType),
+                     rollingAvgFn: ((DataType, DataType, Int) => DataType),
                      normFn: ((DataType, Int) => DataType),
                      image: Array[Array[Array[DataType]]], S: Int, K:Int=5, maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
                      connectivityOption: String = "Functional", debug: Boolean = true) {
@@ -577,7 +577,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       }
       println((System.currentTimeMillis() - tPR) + " one round of cluste assignment updates")
 
-      val updateCalcSum = ParMap[Int, DatumCord[DataType]]()
+      val updateRollingAvg = ParMap[Int, DatumCord[DataType]]()
       val updateCalcCount = ParMap[Int, Int]()
 
       val tMore = System.currentTimeMillis()
@@ -594,12 +594,14 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
                   val usedForC = clusterAssign(vX)(vY)(vZ)
                   if (usedForC >=0) {
-                    if (updateCalcSum.contains(usedForC)) {
-                      val old = updateCalcSum(usedForC)
-                      updateCalcSum.put(usedForC, DatumCord(vX + old.x, vY + old.y, vZ + old.z, sumFn(image(vX)(vY)(vZ), old.cont)))
-                      updateCalcCount.put(usedForC, updateCalcCount(usedForC) + 1)
+                    if (updateRollingAvg.contains(usedForC)) {
+                      val old = updateRollingAvg(usedForC)
+                      val oldCount = updateCalcCount.get(usedForC).get
+                      val newAvg = rollingAvgFn( old.cont,image(vX)(vY)(vZ),oldCount)
+                      updateRollingAvg.put(usedForC, DatumCord(vX + old.x, vY + old.y, vZ + old.z,newAvg ))
+                      updateCalcCount.put(usedForC, oldCount + 1)
                     } else {
-                      updateCalcSum.put(usedForC, DatumCord(vX, vY, vZ, image(vX)(vY)(vZ)))
+                      updateRollingAvg.put(usedForC, DatumCord(vX, vY, vZ, image(vX)(vY)(vZ)))
                       updateCalcCount.put(usedForC, 1)
                     }
 
@@ -619,11 +621,11 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       }
 
       val lastCenters = centers.toArray
-      updateCalcSum.keys.foreach { key =>
+      updateRollingAvg.keys.foreach { key =>
         {
-          val old = updateCalcSum(key)
+          val old = updateRollingAvg(key)
           val count = updateCalcCount(key)
-          centers(key) = DatumCord(round(old.x / count), round(old.y / count), round(old.z / count), normFn(updateCalcSum(key).cont, count))
+          centers(key) = DatumCord(round(old.x / count), round(old.y / count), round(old.z / count), updateRollingAvg(key).cont)
         }
       }
 

@@ -1,4 +1,0 @@
-class Datum3d {
-  
-}
-
