@@ -92,13 +92,18 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
         if (dx + x > 0 & dy + y > 0 & dz + z > 0 & dx + x < xDim & dy + y < yDim & dz + z < zDim) {
           val myCol = image(dx + x)(dy + y)(dz + z)
           var difSum = 0.0
-          //TODO I am not checking bounds here b/c .getVoxel retunrs zero and what we want the behavior to be on the edges is not clear
-
+          
+          if(dx+x+1<xDim)
           difSum += distFn(myCol, image(dx + x + 1)(dy + y)(dz + z))
+          if(dx+x-1>=0)
           difSum += distFn(myCol, image(dx + x - 1)(dy + y)(dz + z))
+          if(dy+y+1<yDim)
           difSum += distFn(myCol, image(dx + x)(dy + y + 1)(dz + z))
+          if(dy+y-1>=0)
           difSum += distFn(myCol, image(dx + x)(dy + y - 1)(dz + z))
+          if(dz+z+1<zDim)
           difSum += distFn(myCol, image(dx + x)(dy + y)(dz + z + 1))
+          if(dz+z-1>=0)
           difSum += distFn(myCol, image(dx + x)(dy + y)(dz + z - 1))
           difSum
           if (difSum < maxScore) {
