@@ -27,11 +27,15 @@ case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      rollingAvgFn: ((DataType, DataType, Int) => DataType),
                      normFn: ((DataType, Int) => DataType),
-                     image: Array[Array[Array[DataType]]], S: Int, K:Int=5, maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
+                     image: Array[Array[Array[DataType]]], S: Int, K:Int=5,M:Double=10.0 ,maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
                      connectivityOption: String = "Functional", debug: Boolean = true) {
 
   //TODO try out different tif image stacks and see what dim2 is 
 
+  val invwt = 1.0/((S/M)*(S/M))
+  def distFn_m (a:DataType,b:DataType) : Double= {
+    distFn(a,b)*invwt
+  }
   val xDim = image.size
   val yDim = image(0).size
   val zDim = image(0)(0).size
@@ -465,7 +469,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
         workingBlob.push((oX, oY, oZ))
         var adjLabel = -1
 
-        for (n <- 0 until dx.size) { //TODO after we compare to c++ move this into the while loop and count all edges
+        for (n <- 0 until dx.size) { 
           val curX = workingBlob.top._1 + dx(n)
           val curY = workingBlob.top._2 + dy(n)
           val curZ = workingBlob.top._3 + dz(n)
