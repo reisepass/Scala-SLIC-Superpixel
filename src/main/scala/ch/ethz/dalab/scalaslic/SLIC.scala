@@ -27,11 +27,12 @@ case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      rollingAvgFn: ((DataType, DataType, Int) => DataType),
                      normFn: ((DataType, Int) => DataType),
-                     image: Array[Array[Array[DataType]]], S: Int, K:Int=5,M:Double=10.0 ,maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
-                     connectivityOption: String = "Functional", debug: Boolean = true) {
+                     image: Array[Array[Array[DataType]]], S: Int, K:Int=5,inM:Double=Double.MinValue ,maxIterations: Int = 15, minChangePerIter: Double = 0.000001,
+                     connectivityOption: String = "Imperative", debug: Boolean = false, USE_CLUSTER_MAX_NORMALIZING:Boolean=true,in_minBlobSize:Int=(-1)) {
 
   //TODO try out different tif image stacks and see what dim2 is 
 
+  val M = if(inM==Double.MinValue) S else inM
   val invwt = 1.0/((S/M)*(S/M))
   def distFn_m (a:DataType,b:DataType) : Double= {
     distFn(a,b)*invwt
@@ -43,7 +44,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
   val xS = if (xDim < S) xDim else S
   val yS = if (yDim < S) yDim else S
   val zS = if (zDim < S) zDim else S
-  val minBlobSize = (xS * yS * zS) / 2 //TODO check if this is the right minSize
+  val minBlobSize = if(in_minBlobSize>=0) in_minBlobSize else (xS * yS * zS) / 2 //TODO check if this is the right minSize
   //cpp code looks like its using this:  floor(round((xDim*yDim*zDim)/K)/4)   
   //i think floor(x/4) is the same as x >> 2
   val dx = Array(-1, 1, 0, 0, 0, 0)
@@ -98,17 +99,17 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
           var difSum = 0.0
           
           if(dx+x+1<xDim)
-          difSum += distFn(myCol, image(dx + x + 1)(dy + y)(dz + z))
+          difSum += distFn_m(myCol, image(dx + x + 1)(dy + y)(dz + z))
           if(dx+x-1>=0)
-          difSum += distFn(myCol, image(dx + x - 1)(dy + y)(dz + z))
+          difSum += distFn_m(myCol, image(dx + x - 1)(dy + y)(dz + z))
           if(dy+y+1<yDim)
-          difSum += distFn(myCol, image(dx + x)(dy + y + 1)(dz + z))
+          difSum += distFn_m(myCol, image(dx + x)(dy + y + 1)(dz + z))
           if(dy+y-1>=0)
-          difSum += distFn(myCol, image(dx + x)(dy + y - 1)(dz + z))
+          difSum += distFn_m(myCol, image(dx + x)(dy + y - 1)(dz + z))
           if(dz+z+1<zDim)
-          difSum += distFn(myCol, image(dx + x)(dy + y)(dz + z + 1))
+          difSum += distFn_m(myCol, image(dx + x)(dy + y)(dz + z + 1))
           if(dz+z-1>=0)
-          difSum += distFn(myCol, image(dx + x)(dy + y)(dz + z - 1))
+          difSum += distFn_m(myCol, image(dx + x)(dy + y)(dz + z - 1))
           difSum
           if (difSum < maxScore) {
             maxScore = difSum
@@ -123,14 +124,18 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
   def clusterDist(point: DatumCord[DataType], centerID: Int): Double = {
     val center = centers(centerID)
-    val d_c = distFn(center.cont, point.cont)
+    val d_c = distFn_m(center.cont, point.cont)
     val d_s = sqrt(Math.pow(point.x - center.x, 2) + Math.pow(point.y - center.y, 2) + Math.pow(point.z - center.z, 2))
     if (clusterMaxColDist(centerID) < d_c)
       clusterMaxColDist(centerID) = d_c
     if (clusterMaxSpaceDist(centerID) < d_s)
       clusterMaxSpaceDist(centerID) = d_s
     //TODO question: should i update the clusterMax all the time or just after each round ? 
+   
+    if(USE_CLUSTER_MAX_NORMALIZING)
     sqrt(Math.pow(d_c / clusterMaxColDist(centerID), 2) + Math.pow(d_s / clusterMaxSpaceDist(centerID), 2))
+    else
+      d_c+d_s
 
   }
 
