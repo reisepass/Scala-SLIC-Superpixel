@@ -35,8 +35,10 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
   val M = if(inM==Double.MinValue) S else inM
   val invwt = 1.0/((S/M)*(S/M))
   def distFn_m (a:DataType,b:DataType) : Double= {
-    distFn(a,b)*invwt
+    distFn(a,b)
   }
+
+  
   val xDim = image.size
   val yDim = image(0).size
   val zDim = image(0)(0).size
@@ -87,14 +89,14 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
       val x = a._1
       val y = a._2
       val z = a._3
-      var maxScore = Double.MaxValue
+      var maxScore = 0.0
       var bestMove = (0, 0, 0)
       for {
         dx <- (-purterbSpace) until purterbSpace;
         dy <- (-purterbSpace) until purterbSpace;
         dz <- (-purterbSpace) until purterbSpace
       } {
-        if (dx + x > 0 & dy + y > 0 & dz + z > 0 & dx + x < xDim & dy + y < yDim & dz + z < zDim) {
+        if (boundCheck(x+dx,y+dy,z+dz,xDim,yDim,zDim)) {
           val myCol = image(dx + x)(dy + y)(dz + z)
           var difSum = 0.0
           
@@ -125,7 +127,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
   def clusterDist(point: DatumCord[DataType], centerID: Int): Double = {
     val center = centers(centerID)
     val d_c = distFn_m(center.cont, point.cont)
-    val d_s = sqrt(Math.pow(point.x - center.x, 2) + Math.pow(point.y - center.y, 2) + Math.pow(point.z - center.z, 2))
+    val d_s = sqrt(Math.pow(point.x - center.x, 2) + Math.pow(point.y - center.y, 2) + Math.pow(point.z - center.z, 2))*invwt
     if (clusterMaxColDist(centerID) < d_c)
       clusterMaxColDist(centerID) = d_c
     if (clusterMaxSpaceDist(centerID) < d_s)
@@ -456,7 +458,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
   def enforceConnectivity_I(oldLabels: Array[Array[Array[Int]]], minBlobSize: Int): Array[Array[Array[Int]]] = {
 
-    //The below is designed to mick related C++ code and hance uses alot of state 
+    //The below is designed to mimick related C++ code and hance uses alot of state 
     val xDim = oldLabels.size
     val yDim = oldLabels(0).size
     val zDim = oldLabels(0)(0).size
@@ -520,6 +522,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
 
   }
 
+  
   def calcSimpleSquaresSupPix():Array[Array[Array[Int]]] = {
     assert(xDim > 0 & yDim > 0 & zDim > 0)
     val tt0 = System.currentTimeMillis()
@@ -572,7 +575,7 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
           val tC = System.currentTimeMillis()
           val center = centers(cIDX)
           for (
-            vX <- center.x - 2 * S until center.x + 2 * S; //TODO change back to 2*S
+            vX <- center.x - 2 * S until center.x + 2 * S; 
             vY <- center.y - 2 * S until center.y + 2 * S;
             vZ <- center.z - 2 * S until center.z + 2 * S
           ) {
@@ -727,6 +730,17 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     }
     return (supPixSum, supPixCount)
   }
+  
+   def findEdges_simple_array(supPixelIdmask: Array[Array[Array[Int]]],numSuperPix:Int): Array[ scala.collection.mutable.Set[Int]] = {
+    val (centers,size) = findSupPixelCenterOfMassAndSize(supPixelIdmask)
+     val outAsMap=findEdges_simple(supPixelIdmask,centers)
+    val numSup=outAsMap.keySet.size
+    val keys = outAsMap.keySet.toArray.sorted
+    
+    val conn = Array.fill(numSuperPix){scala.collection.mutable.Set[Int]()}
+    keys.map(k => conn(k)=scala.collection.mutable.Set(outAsMap.get(k).get.toArray:_*))
+    conn
+   }
   def findEdges_simple(supPixelIdmask: Array[Array[Array[Int]]], centers: HashMap[Int, (Int, Int, Int)]): HashMap[Int, Set[Int]] = {
     val xDim = supPixelIdmask.length
     val yDim = supPixelIdmask(0).length
@@ -799,6 +813,32 @@ class SLIC[DataType](distFn: (DataType, DataType) => Double,
     return out
   }
 
+  def findEdges_trueIter(supPixelIdmask: Array[Array[Array[Int]]],numSuperPix:Int): Array[ scala.collection.mutable.Set[Int]] = {
+    val xDim = supPixelIdmask.length
+    val yDim =supPixelIdmask(0).length 
+    val zDim= supPixelIdmask(0)(0).length
+  
+    val conn = Array.fill(numSuperPix){scala.collection.mutable.Set[Int]()}
+    for( x <- 0 until xDim; y<- 0 until yDim; z <- 0 until zDim){
+     val me = supPixelIdmask(x)(y)(z)
+      for {
+        dx <- (-1) to 1;
+        dy <- (-1) to 1;
+        dz <- (-1) to 1
+      } {
+        if (boundCheck(x+dx,y+dy,z+dz,xDim,yDim,zDim)) {
+          val other = supPixelIdmask(x+dx)(y+dy)(z+dz)
+        
+         if(me!=other)
+           conn(me)+=(other)
+           
+        }
+    }
+    
+  }
+    conn
+  }
+  
   def findSupPixelBounds(supPixelId: Array[Array[Array[Int]]]): (Map[Int, List[DatumCord[DataType]]], Map[Int, HashMap[Int, Int]]) = {
 
     val cordWiseBlobs = HashMap[Int, List[DatumCord[DataType]]]()
