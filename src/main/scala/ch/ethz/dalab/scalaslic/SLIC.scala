@@ -24,6 +24,31 @@ import breeze.numerics.sqrt
 
 case class DatumCord[DataCont](x:Int,y:Int,z:Int,cont:DataCont)
 
+object SLICutils{
+   val distFnCol = (a: (Int, Int, Int), b: (Int, Int, Int)) => sqrt(Math.pow(a._1 - b._1, 2) + Math.pow(a._2 - b._2, 2) + Math.pow(a._3 - b._3, 2))
+   val sumFnCol =  (a: (Int, Int, Int), b: (Int, Int, Int)) => ((a._1 + b._1, a._2 + b._2, a._3 + a._3))
+   val normFnCol = (a: (Int, Int, Int), n: Int)             => { ((a._1 / n, a._2 / n, a._3 / n))}
+   
+}
+
+class SLICgreySimple(myImage: Array[Array[Array[Int]]], myS:Int, myM:Double, myMaxItr:Int = 30,myMinBlob:Int=(-1)) extends SLIC[(Int)](
+    distFn = (a: Int, b: Int) => Math.sqrt(Math.pow(a - b, 2)),
+    rollingAvgFn = (a: Int, b: Int, n: Int) => {
+    val sum = a * n + b
+    (sum / (n + 1)).asInstanceOf[Int]
+  },
+  normFn = (a: Int, n: Int) => Math.round(a / n),
+  image=myImage,
+  S=myS,
+  inM=myM,
+  USE_CLUSTER_MAX_NORMALIZING=false,
+  maxIterations=myMaxItr,
+  in_minBlobSize=myMinBlob
+){
+ 
+}
+
+
 class SLIC[DataType](distFn: (DataType, DataType) => Double,
                      rollingAvgFn: ((DataType, DataType, Int) => DataType),
                      normFn: ((DataType, Int) => DataType),
