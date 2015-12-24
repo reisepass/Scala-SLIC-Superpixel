@@ -1,0 +1,6 @@
+[0m[[0mdebug[0m] [0mlocal do not support transaction. ivy pattern does not use revision as a directory[0m
+[0m[[0minfo[0m] [0m	published scalaslic_2.10 to /home/mort/.ivy2/local/ch.ethz.dalab/scalaslic_2.10/0.1-SNAPSHOT/poms/scalaslic_2.10.pom[0m
+[0m[[0minfo[0m] [0m	published scalaslic_2.10 to /home/mort/.ivy2/local/ch.ethz.dalab/scalaslic_2.10/0.1-SNAPSHOT/jars/scalaslic_2.10.jar[0m
+[0m[[0minfo[0m] [0m	published scalaslic_2.10 to /home/mort/.ivy2/local/ch.ethz.dalab/scalaslic_2.10/0.1-SNAPSHOT/srcs/scalaslic_2.10-sources.jar[0m
+[0m[[0minfo[0m] [0m	published scalaslic_2.10 to /home/mort/.ivy2/local/ch.ethz.dalab/scalaslic_2.10/0.1-SNAPSHOT/docs/scalaslic_2.10-javadoc.jar[0m
+[0m[[0minfo[0m] [0m	published ivy to /home/mort/.ivy2/local/ch.ethz.dalab/scalaslic_2.10/0.1-SNAPSHOT/ivys/ivy.xml[0m

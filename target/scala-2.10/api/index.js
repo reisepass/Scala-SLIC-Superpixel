@@ -1,0 +1,1 @@
+Index.PACKAGES = {"ch" : [], "ch.ethz" : [], "ch.ethz.dalab" : [], "ch.ethz.dalab.scalaslic" : [{"case class" : "ch\/ethz\/dalab\/scalaslic\/DatumCord.html", "name" : "ch.ethz.dalab.scalaslic.DatumCord"}, {"class" : "ch\/ethz\/dalab\/scalaslic\/SLIC.html", "name" : "ch.ethz.dalab.scalaslic.SLIC"}]};

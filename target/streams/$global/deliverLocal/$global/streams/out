@@ -1,0 +1,4 @@
+[0m[[0minfo[0m] [0m:: delivering :: ch.ethz.dalab#scalaslic_2.10;0.1-SNAPSHOT :: 0.1-SNAPSHOT :: integration :: Wed Jul 08 15:33:20 CEST 2015[0m
+[0m[[0mdebug[0m] [0m	options = status=integration pubdate=Wed Jul 08 15:33:20 CEST 2015 validate=true resolveDynamicRevisions=true merge=true resolveId=null pubBranch=null[0m
+[0m[[0minfo[0m] [0m	delivering ivy file to /home/mort/workspace/Scala-SLIC-Superpixel/target/scala-2.10/ivy-0.1-SNAPSHOT.xml[0m
+[0m[[0mdebug[0m] [0m	deliver done (23ms)[0m
